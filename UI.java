@@ -14,7 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-public class UI implements MouseListener, Mou {
+public class UI {
     public static double currentProgress;
     final int slotsX = 58;
     final int slotsY = 318;
@@ -722,30 +722,5 @@ public class UI implements MouseListener, Mou {
         g2d.drawString("X:" + gp.player.worldX, 420, 780);
         g2d.drawString("Y:" + gp.player.worldY, 520, 780);
         g2d.drawString("FPS:" + gp.count, 620, 780);
-    }
-
-    @Override
-    public void mouseClicked(MouseEvent e) {
-
-    }
-
-    @Override
-    public void mousePressed(MouseEvent e) {
-
-    }
-
-    @Override
-    public void mouseReleased(MouseEvent e) {
-
-    }
-
-    @Override
-    public void mouseEntered(MouseEvent e) {
-
-    }
-
-    @Override
-    public void mouseExited(MouseEvent e) {
-
     }
 }
