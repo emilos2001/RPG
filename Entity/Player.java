@@ -7,21 +7,15 @@ import Totorial.RPG.Obj.*;
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.util.HashMap;
 import java.util.Objects;
 import java.util.Random;
-
 
 public class Player extends Entity {
     public final int screenX;
     public final int screenY;
-    public int key = 16;
-    public int keyBuy;
-    public int diamond = 1;
-    public int diamondBuy;
-    public int coin = 25;
     public boolean calculatorBuy;
     public boolean lanternBuy;
-    public int mana = 1;
     public int index;
     Merchant merchant;
     Villager villager;
@@ -30,6 +24,7 @@ public class Player extends Entity {
     BufferedImage image;
     int houseX;
     int houseY;
+    public HashMap<BufferedImage, Integer> inventory = new HashMap<>();
 
     public Player(GamePanel gp, Keys keys) {
         super(gp);
@@ -44,17 +39,19 @@ public class Player extends Entity {
         solidDefaultY = solid.y;
         setDefaultValues();
         getPlayerImage();
-        items();
+        playerInventory();
+    }
+    int key = 2;
+    int coins = 50;
+    int manas = 10;
+    int diamonds= 4;
+    int lanterns = 1;
+    int calc = 1;
+
+    private void playerInventory() {
+
     }
 
-    public void items() {
-        inventory.add(new KeyObj(gp));
-        inventory.add(new Diamond(gp));
-        inventory.add(new Lantern(gp));
-        inventory.add(new CalcObj(gp));
-        inventory.add(new Coin(gp));
-        inventory.add(new Mana(gp));
-    }
 
     public void getPlayerImage() {
         try {
@@ -121,6 +118,7 @@ public class Player extends Entity {
             String text2 = "PRESS  'H'  TO ENTER IN ";
             String text3 = "PRESS  'H'  TO GO OUTSIDE";
             String nameObj = gp.supObject[gp.currentMap][index].name;
+
             switch (nameObj) {
                 case "HOUSE" -> {
                     gp.ui.message(text2 + nameObj);
@@ -129,22 +127,23 @@ public class Player extends Entity {
                         if (currentHouse.visited) {
                             gp.ui.message("This house has been already visited");
                         } else if (key > 0) {
-                            key--;
-                            gp.currentMap = gp.houseMap;
+                            inventory.put(keyObj.image, inventory.getOrDefault(keyObj.image, 0) + 1);
                             worldX = 1254;
                             worldY = 766;
                             gp.supObject[gp.exteriorMap][index].image = gp.house.visitedHouse;
                             houseX = gp.supObject[gp.exteriorMap][index].worldX;
                             houseY = gp.supObject[gp.exteriorMap][index].worldY;
-                        } else {
+                        } else if (key == 0){
+                            inventory.remove(keyObj.image);
                             gp.ui.message("You need a key to enter in this house");
                         }
                     }
                 }
+
                 case "KEY" -> {
                     gp.ui.message(text + nameObj);
                     if (keys.interact) {
-                        key += 1;
+                        inventory.put(keyObj.image,inventory.getOrDefault(keyObj.image, 0) + 1);
                         gp.supObject[gp.currentMap][index] = null;
                     }
                 }
@@ -161,7 +160,7 @@ public class Player extends Entity {
                         gp.ui.message("You need a key to enter in the castle");
                         if (key > 0) {
                             gp.ui.message(" ");
-                            key--;
+                            inventory.put(keyObj.image,inventory.getOrDefault(keyObj.image, 0) - 1);
                             gp.currentMap = gp.castleMap;
                             worldX = 590;
                             worldY = 189;
@@ -179,8 +178,8 @@ public class Player extends Entity {
                 case "DINCOIN" -> {
                     gp.ui.message(text + nameObj);
                     if (keys.interact) {
-                        coin += 1;
                         gp.supObject[gp.currentMap][index] = null;
+                        inventory.put(coin.image, inventory.getOrDefault(coin.image, 0) + 1);
                     }
                 }
                 case "CHEST" -> {
@@ -192,7 +191,7 @@ public class Player extends Entity {
                         if (key > 0) {
                             currentChest.opened = true;
                             chestFound();
-                            key -= 1;
+                            inventory.put(keyObj.image, inventory.getOrDefault(keyObj.image, 0) - 1);
                             gp.supObject[gp.currentMap][index].image = gp.chest.openChest;
                         } else {
                             gp.ui.message("you don't have any key to open this chest");
@@ -208,7 +207,6 @@ public class Player extends Entity {
         gp.assetSetter.setItemsInHouse();
         Point house = new Point();
         int pointOfHouse = (int) house.distance(houseX, houseY);
-        System.out.println("point OF house" + pointOfHouse);
         switch (pointOfHouse) {
             case 787 -> {
                 worldX = 778;
@@ -253,17 +251,24 @@ public class Player extends Entity {
         }
     }
 
-    private void chestFound() {
+    public void chestFound() {
+
         Random random = new Random();
         String item = gp.ui.randomName;
         gp.state = gp.chestState;
         switch (item) {
-            case "Key" -> key += random.nextInt(10);
-            case "Coins" -> coin += random.nextInt(6);
-            case "Manacoins" -> mana += random.nextInt(5);
-            case "Diamond" -> diamond += random.nextInt(2);
+            case "Key" -> inventory.put(keyObj.image, inventory.getOrDefault(keyObj.image, 0) + random.nextInt(3) + 1);
+            case "Coins" -> inventory.put(coin.image, inventory.getOrDefault(coin.image, 0)+ random.nextInt(10) + 1);
+            case "Manacoins" -> inventory.put(mana.image,inventory.getOrDefault(mana.image, 0) + random.nextInt(10) + 1);
+            case "Diamond" -> inventory.put(diamond.image, inventory.getOrDefault(diamond.image, 0) + random.nextInt(3) + 1);
             case "Lantern" -> lanternBuy = true;
             case "Calculator" -> calculatorBuy = true;
+        }
+        if (lanternBuy){
+            inventory.put(lantern.image, inventory.getOrDefault(lantern.image, 0) + 1);
+        }
+        if (calculatorBuy){
+            inventory.put(calcObj.image, inventory.getOrDefault(calcObj.image, 0) + 1);
         }
     }
 
@@ -278,8 +283,8 @@ public class Player extends Entity {
                         if (gp.entities[gp.currentMap][index].talked) {
                             gp.ui.message("you have been talked with the villager");
                             gp.state = gp.playState;
-                        } else if (!gp.entities[gp.currentMap][index].talked && coin >= 25) {
-                            coin -= 25;
+                        } else if (!gp.entities[gp.currentMap][index].talked && coins >= 25) {
+                            inventory.put(coin.image, coins - 25);
                             gp.state = gp.dialogueStateWithVillagers;
                             gp.entities[gp.currentMap][index].talked = true;
                         } else {
@@ -296,26 +301,6 @@ public class Player extends Entity {
             }
         }
     }
-
-      
-//    public void cameraMove() {
-//        if (worldX < 2000 && worldY < 2000) {
-//            cameraDirection = "right";
-//        } else if (worldY < 2000) {
-//            cameraDirection = "down";
-//        } else if (worldX > 546) {
-//            cameraDirection = "left";
-//        } else {
-//            worldY -= speed * 0.4;
-//            return;
-//        }
-//        switch (cameraDirection) {
-//            case "down" -> worldY += speed * 0.4;
-//            case "left" -> worldX -= speed * 0.4;
-//            case "right" -> worldX += speed * 0.4;
-//        }
-//    }
-
 
 
     public void draw(Graphics2D g2) {
