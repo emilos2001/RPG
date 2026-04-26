@@ -297,6 +297,26 @@ public class Player extends Entity {
         }
     }
 
+      
+//    public void cameraMove() {
+//        if (worldX < 2000 && worldY < 2000) {
+//            cameraDirection = "right";
+//        } else if (worldY < 2000) {
+//            cameraDirection = "down";
+//        } else if (worldX > 546) {
+//            cameraDirection = "left";
+//        } else {
+//            worldY -= speed * 0.4;
+//            return;
+//        }
+//        switch (cameraDirection) {
+//            case "down" -> worldY += speed * 0.4;
+//            case "left" -> worldX -= speed * 0.4;
+//            case "right" -> worldX += speed * 0.4;
+//        }
+//    }
+
+
 
     public void draw(Graphics2D g2) {
         g2.setColor(Color.white);
