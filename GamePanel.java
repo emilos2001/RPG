@@ -151,12 +151,12 @@ public class GamePanel extends JPanel implements Runnable, MouseMotionListener, 
             }
         }
         player.draw(g2);
-        // menu.isMenu = false;
-        /*if (keys.joinButtonClicked) {
+         menu.isMenu = false;
+        if (keys.joinButtonClicked) {
             menu.isMenu = false;
             keys.join = false;
             player.draw(g2);
-        }*/
+        }
         ui.draw(g2);
     }
 
