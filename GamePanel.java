@@ -121,11 +121,11 @@ public class GamePanel extends JPanel implements Runnable, MouseMotionListener, 
         if (state == playState
                 || state == information) {
             player.update();
-            /*if (keys.joinButtonClicked) {
+            if (keys.joinButtonClicked) {
                 player.update();
-            } /*lse {
+            } else {
                 player.cameraMove();
-            }*/
+            }
         }
     }
 
