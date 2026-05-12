@@ -175,27 +175,27 @@ public class MyJdbc {
         return questions;
     }
 
-    public void deleteLastRecords(String question) {
-        try {
-            query = "DELETE FROM answers WHERE question = ?";
-            preparedStatement = connection.prepareStatement(query);
-            preparedStatement.setString(1, question);
-            preparedStatement.executeUpdate();
-            String query1 = "DELETE FROM question WHERE question = ?";
-            preparedStatement = connection.prepareStatement(query1);
-            preparedStatement.setString(1, question);
-            preparedStatement.executeUpdate();
-            String query2 = "DELETE FROM pincode ORDER BY pinId DESC LIMIT 1";
-            preparedStatement = connection.prepareStatement(query2);
-            preparedStatement.executeUpdate();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
+    // public void deleteLastRecords(String question) {
+    //     try {
+    //         query = "DELETE FROM answers WHERE question = ?";
+    //         preparedStatement = connection.prepareStatement(query);
+    //         preparedStatement.setString(1, question);
+    //         preparedStatement.executeUpdate();
+    //         String query1 = "DELETE FROM question WHERE question = ?";
+    //         preparedStatement = connection.prepareStatement(query1);
+    //         preparedStatement.setString(1, question);
+    //         preparedStatement.executeUpdate();
+    //         String query2 = "DELETE FROM pincode ORDER BY pinId DESC LIMIT 1";
+    //         preparedStatement = connection.prepareStatement(query2);
+    //         preparedStatement.executeUpdate();
+    //     } catch (Exception e) {
+    //         e.printStackTrace();
+    //     }
+    // }
 
-    public boolean typeOfAnswers() {
-        return false;
-    }
+    // public boolean typeOfAnswers() {
+    //     return false;
+    // }
 
     public boolean isEmpty() {
         boolean isEmpty = false;
