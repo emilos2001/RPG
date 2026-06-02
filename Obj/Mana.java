@@ -10,7 +10,7 @@ public class Mana extends SupObject{
         super(gp);
         name = "MANACOIN";
         try {
-            manaCoin = ImageIO.read(Objects.requireNonNull(getClass().getResourceAsStream("manacrystal.png")));
+            manaCoin = ImageIO.read(Objects.requireNonNull(getClass().getResourceAsStream("")));
             image = ImageIO.read(Objects.requireNonNull(getClass().getResourceAsStream("manacrystal.png")));
         }catch (Exception e){
             e.printStackTrace();

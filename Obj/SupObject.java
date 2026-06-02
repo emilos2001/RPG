@@ -13,7 +13,6 @@ public class SupObject {
     public BufferedImage lantern;
     public BufferedImage coin;
     public BufferedImage manaCoin;
-    public BufferedImage chest;
     GamePanel gp;
 
     public SupObject(GamePanel gp) {
@@ -24,6 +23,10 @@ public class SupObject {
     public int solidDefaultX, solidDefaultY;
     public int worldX;
     public int worldY;
+    public BufferedImage closedChest;
+    public BufferedImage openChest;
+    public BufferedImage visitedHouse;
+    public BufferedImage nonVisitedHouse;
     public String name;
 
     public void draw(Graphics2D g2d, GamePanel gp) {

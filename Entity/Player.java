@@ -1,13 +1,16 @@
 package Totorial.RPG.Entity;
 
+
 import Totorial.RPG.GamePanel;
 import Totorial.RPG.Keys;
-import Totorial.RPG.Obj.*;
+import Totorial.RPG.Obj.Chest;
+import Totorial.RPG.Obj.House;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Objects;
 import java.util.Random;
 
@@ -17,6 +20,15 @@ public class Player extends Entity {
     public boolean calculatorBuy;
     public boolean lanternBuy;
     public int index;
+    public int index2;
+
+    public int key = 2;
+    public int coins = 30;
+    public int diamonds = 0;
+    public int manaCoins = 0;
+    public int calculator = 0;
+    public int lanternNum = 0;
+    public HashMap<BufferedImage, Integer> inventory = new LinkedHashMap<>();
     Merchant merchant;
     Villager villager;
     GamePanel gp;
@@ -24,7 +36,6 @@ public class Player extends Entity {
     BufferedImage image;
     int houseX;
     int houseY;
-    public HashMap<BufferedImage, Integer> inventory = new HashMap<>();
 
     public Player(GamePanel gp, Keys keys) {
         super(gp);
@@ -37,21 +48,57 @@ public class Player extends Entity {
         solid = new Rectangle(10, 16, 32, 32);
         solidDefaultX = solid.x;
         solidDefaultY = solid.y;
+        playerInventory();
         setDefaultValues();
         getPlayerImage();
-        playerInventory();
+
     }
-    int key = 2;
-    int coins = 50;
-    int manas = 10;
-    int diamonds= 4;
-    int lanterns = 1;
-    int calc = 1;
+
+    public void updateSlots(BufferedImage image, BufferedImage imageNull, int count) {
+        if (count > 0) {
+            inventory.put(image, inventory.getOrDefault(image, 0) + count);
+        } else {
+            inventory.put(imageNull, inventory.getOrDefault(imageNull, 0) + count);
+        }
+    }
 
     private void playerInventory() {
-
+        updateSlots(coin.image, coin.coin, coins);
+        updateSlots(keyObj.image, keyObj.key, key);
+        updateSlots(mana.image, mana.manaCoin, manaCoins);
+        updateSlots(diamond.image, diamond.diamond, diamonds);
+        updateSlots(lantern.image, lantern.lantern, lanternNum);
+        updateSlots(calcObj.image, calcObj.calculator, calculator);
     }
 
+    public int getCoins() {
+        return inventory.get(coin.image);
+    }
+
+    public void addCoins(int amount) {
+        int currentCoins = inventory.getOrDefault(coin.image, 0);
+        inventory.put(coin.image, currentCoins + amount);
+    }
+
+    public void subtractCoins(int amount, String currency) {
+        int currentCoins = inventory.getOrDefault(coin.image, 0);
+        inventory.put(coin.image, currentCoins - amount);
+    }
+
+    public void useInventory(BufferedImage image, int amount, boolean give) {
+        if (give) {
+            int currentAmount = inventory.getOrDefault(image, 0);
+            int remainingItem = currentAmount - amount;
+
+            if (remainingItem > 0) {
+                inventory.put(image, remainingItem);
+            } else {
+                inventory.remove(image);
+            }
+        } else {
+            inventory.merge(image, amount, Integer::sum);
+        }
+    }
 
     public void getPlayerImage() {
         try {
@@ -72,53 +119,50 @@ public class Player extends Entity {
     }
 
     public void update() {
-        if (keys.up || keys.down || keys.left || keys.right) {
-            if (keys.up) {
-                playerDirection = "up";
-            } else if (keys.down) {
-                playerDirection = "down";
-            } else if (keys.left) {
-                playerDirection = "left";
-            } else {
-                playerDirection = "right";
-            }
-            collision = false;
-            gp.collisions.checkTileForPlayer(this);
-            if (!collision) {
-                switch (playerDirection) {
-                    case "up" -> worldY -= speed;
-                    case "down" -> worldY += speed;
-                    case "left" -> worldX -= speed;
-                    case "right" -> worldX += speed;
+        if (gp.state == gp.playState) {
+            if (keys.up || keys.down || keys.left || keys.right) {
+                if (keys.up) {
+                    playerDirection = "up";
+                } else if (keys.down) {
+                    playerDirection = "down";
+                } else if (keys.left) {
+                    playerDirection = "left";
+                } else {
+                    playerDirection = "right";
+                }
+                collision = false;
+                gp.collisions.checkTileForPlayer(this);
+                if (!collision) {
+                    switch (playerDirection) {
+                        case "up" -> worldY -= speed;
+                        case "down" -> worldY += speed;
+                        case "left" -> worldX -= speed;
+                        case "right" -> worldX += speed;
+                    }
+                }
+                spriteCounter++;
+                if (spriteCounter > 10) {
+                    if (spriteNum == 1) {
+                        spriteNum = 2;
+                    } else if (spriteNum == 2) {
+                        spriteNum = 1;
+                    }
+                    spriteCounter = 0;
                 }
             }
-            spriteCounter++;
-            if (spriteCounter > 10) {
-                if (spriteNum == 1) {
-                    spriteNum = 2;
-                } else if (spriteNum == 2) {
-                    spriteNum = 1;
-                }
-                spriteCounter = 0;
-            }
+            index = gp.collisions.checkObj(this);
+            interactObj(index);
+            index2 = gp.collisions.checkNpc(this);
+            interactNpc(index2);
         }
-        index = gp.collisions.checkObj(this);
-        interactObj(index);
-        int index2 = gp.collisions.checkNpc(this);
-        interactNpc(index2);
     }
 
     private void interactObj(int index) {
-       /*if(keys.joinButtonClicked){
-            screenX = 258;
-            screenY = 122;
-        }*/
         if (index != 999) {
             String text = "PRESS  'E'  TO INTERACT WITH ";
             String text2 = "PRESS  'H'  TO ENTER IN ";
             String text3 = "PRESS  'H'  TO GO OUTSIDE";
             String nameObj = gp.supObject[gp.currentMap][index].name;
-
             switch (nameObj) {
                 case "HOUSE" -> {
                     gp.ui.message(text2 + nameObj);
@@ -126,46 +170,47 @@ public class Player extends Entity {
                         House currentHouse = (House) gp.supObject[gp.currentMap][index];
                         if (currentHouse.visited) {
                             gp.ui.message("This house has been already visited");
-                        } else if (key > 0) {
-                            inventory.put(keyObj.image, inventory.getOrDefault(keyObj.image, 0) + 1);
+                        } else if (inventory.getOrDefault(keyObj.image, 0) >= 1) {
+                            gp.currentMap = gp.houseMap;
                             worldX = 1254;
                             worldY = 766;
                             gp.supObject[gp.exteriorMap][index].image = gp.house.visitedHouse;
                             houseX = gp.supObject[gp.exteriorMap][index].worldX;
                             houseY = gp.supObject[gp.exteriorMap][index].worldY;
-                        } else if (key == 0){
-                            inventory.remove(keyObj.image);
-                            gp.ui.message("You need a key to enter in this house");
+                            useInventory(keyObj.image, 1, true);
+                            currentHouse.visited = true;
+                        } else {
+                            gp.ui.message("You need a key to enter this house");
                         }
                     }
                 }
-
                 case "KEY" -> {
                     gp.ui.message(text + nameObj);
                     if (keys.interact) {
-                        inventory.put(keyObj.image,inventory.getOrDefault(keyObj.image, 0) + 1);
                         gp.supObject[gp.currentMap][index] = null;
+                        useInventory(keyObj.image, 1, false);
                     }
                 }
                 case "DOOR" -> {
                     gp.ui.message(text3);
                     if (keys.teleport) {
-                        gp.currentMap = gp.exteriorMap;
                         outsideFromHouse();
+                        gp.currentMap = gp.exteriorMap;
                     }
                 }
                 case "IRON-DOOR" -> {
                     gp.ui.message(text2 + " CASTLE");
                     if (keys.teleport) {
                         gp.ui.message("You need a key to enter in the castle");
-                        if (key > 0) {
+                        if (inventory.getOrDefault(keyObj.image, 0) >= 1) {
                             gp.ui.message(" ");
-                            inventory.put(keyObj.image,inventory.getOrDefault(keyObj.image, 0) - 1);
                             gp.currentMap = gp.castleMap;
                             worldX = 590;
                             worldY = 189;
+                            useInventory(keyObj.image, 1, true);
                         }
                     }
+
                 }
                 case "STAIRS" -> {
                     gp.ui.message(text3);
@@ -179,7 +224,7 @@ public class Player extends Entity {
                     gp.ui.message(text + nameObj);
                     if (keys.interact) {
                         gp.supObject[gp.currentMap][index] = null;
-                        inventory.put(coin.image, inventory.getOrDefault(coin.image, 0) + 1);
+                        useInventory(coin.image, 1, false);
                     }
                 }
                 case "CHEST" -> {
@@ -188,15 +233,14 @@ public class Player extends Entity {
                     if (currentChest.opened) {
                         gp.ui.message("This chest is already empty.");
                     } else if (keys.chestOpen) {
-                        if (key > 0) {
+                        if (inventory.getOrDefault(keyObj.image, 0) >= 1) {
                             currentChest.opened = true;
                             chestFound();
-                            inventory.put(keyObj.image, inventory.getOrDefault(keyObj.image, 0) - 1);
                             gp.supObject[gp.currentMap][index].image = gp.chest.openChest;
+                            useInventory(keyObj.image, 1, true);
                         } else {
                             gp.ui.message("you don't have any key to open this chest");
                         }
-                        System.out.println("chest" + currentChest.opened);
                     }
                 }
             }
@@ -252,23 +296,58 @@ public class Player extends Entity {
     }
 
     public void chestFound() {
-
         Random random = new Random();
-        String item = gp.ui.randomName;
+        String item = gp.ui.randomObj();
+        System.out.println(item);
         gp.state = gp.chestState;
         switch (item) {
-            case "Key" -> inventory.put(keyObj.image, inventory.getOrDefault(keyObj.image, 0) + random.nextInt(3) + 1);
-            case "Coins" -> inventory.put(coin.image, inventory.getOrDefault(coin.image, 0)+ random.nextInt(10) + 1);
-            case "Manacoins" -> inventory.put(mana.image,inventory.getOrDefault(mana.image, 0) + random.nextInt(10) + 1);
-            case "Diamond" -> inventory.put(diamond.image, inventory.getOrDefault(diamond.image, 0) + random.nextInt(3) + 1);
-            case "Lantern" -> lanternBuy = true;
-            case "Calculator" -> calculatorBuy = true;
-        }
-        if (lanternBuy){
-            inventory.put(lantern.image, inventory.getOrDefault(lantern.image, 0) + 1);
-        }
-        if (calculatorBuy){
-            inventory.put(calcObj.image, inventory.getOrDefault(calcObj.image, 0) + 1);
+            case "Key" -> {
+                if (!inventory.containsKey(keyObj.image)) {
+                    inventory.put(keyObj.image, inventory.getOrDefault(keyObj.image, 0));
+                } else {
+                    inventory.put(keyObj.image, inventory.get(keyObj.image) + random.nextInt(3) + 1);
+                }
+                System.out.println("keys" + inventory.getOrDefault(keyObj.image, 0));
+            }
+            case "Coins" -> {
+                if (!inventory.containsKey(coin.image)) {
+                    inventory.put(coin.image, inventory.getOrDefault(coin.image, 0) + random.nextInt(15) + 1);
+                } else {
+                    inventory.put(coin.image, inventory.get(coin.image) + random.nextInt(15) + 1);
+                }
+            }
+            case "Manacoins" -> {
+                if (!inventory.containsKey(mana.image)) {
+                    inventory.put(mana.image, inventory.getOrDefault(mana.image, 0) + random.nextInt(5) + 1);
+                } else {
+                    inventory.put(mana.image, inventory.get(mana.image) + random.nextInt(5) + 1);
+                }
+            }
+            case "Diamond" -> {
+                if (!inventory.containsKey(diamond.image)) {
+
+                    inventory.put(diamond.image, inventory.getOrDefault(diamond.image, 0) + random.nextInt(2) + 1);
+                } else {
+                    inventory.put(diamond.image, inventory.get(diamond.image) + random.nextInt(2) + 1);
+                }
+
+            }
+            case "Lantern" -> {
+                if (!inventory.containsKey(lantern.image)) {
+                    lanternBuy = true;
+                    inventory.put(lantern.image, inventory.getOrDefault(lantern.image, 0) + 1);
+                } else {
+                    gp.ui.message("You found another lantern, but you can only carry one!");
+                }
+            }
+            case "Calculator" -> {
+                if (!inventory.containsKey(calcObj.image)) {
+                    calculatorBuy = true;
+                    inventory.put(calcObj.image, inventory.getOrDefault(calcObj.image, 0) + 1);
+                } else {
+                    gp.ui.message("You found another calculator, but you can only carry one!");
+                }
+            }
         }
     }
 
@@ -279,16 +358,16 @@ public class Player extends Entity {
             switch (name) {
                 case "VILLAGER" -> {
                     gp.ui.message(text + name);
+                    Villager currentVillager = (Villager) gp.entities[gp.currentMap][index];
                     if (keys.talk) {
-                        if (gp.entities[gp.currentMap][index].talked) {
+                        if (currentVillager.talked) {
                             gp.ui.message("you have been talked with the villager");
-                            gp.state = gp.playState;
-                        } else if (!gp.entities[gp.currentMap][index].talked && coins >= 25) {
-                            inventory.put(coin.image, coins - 25);
+                        } else if (inventory.getOrDefault(coin.image, 0) >= 20) {
                             gp.state = gp.dialogueStateWithVillagers;
                             gp.entities[gp.currentMap][index].talked = true;
+                            useInventory(coin.image, 20, true);
                         } else {
-                            gp.ui.message("you can't start that dialog when your balance below 25 coins.");
+                            gp.ui.message("you can't start that dialog when your balance below 20 coins.");
                         }
                     }
                 }

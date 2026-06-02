@@ -12,7 +12,7 @@ public class Coin extends SupObject{
         name = "DINCOIN";
         try {
             image = ImageIO.read(Objects.requireNonNull(getClass().getResourceAsStream("coin_bronze.png")));
-            coin = ImageIO.read(Objects.requireNonNull(getClass().getResourceAsStream("coin_bronze.png")));
+            coin = ImageIO.read(Objects.requireNonNull(getClass().getResourceAsStream("")));
         } catch (Exception e) {
             e.printStackTrace();
         }

@@ -10,8 +10,8 @@ public class Lantern extends SupObject {
         super(gp);
         name = "LANTERN";
         try {
+            lantern = ImageIO.read(Objects.requireNonNull(getClass().getResourceAsStream("")));
             image = ImageIO.read(Objects.requireNonNull(getClass().getResourceAsStream("lantern.png")));
-            lantern = ImageIO.read(Objects.requireNonNull(getClass().getResourceAsStream("lantern.png")));
         } catch (Exception e) {
             e.printStackTrace();
         }

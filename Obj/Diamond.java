@@ -11,7 +11,7 @@ public class Diamond extends SupObject{
         super(gp);
         name = "DIAMOND";
         try{
-            diamond = ImageIO.read(Objects.requireNonNull(getClass().getResourceAsStream("blueheart.png")));
+            diamond = ImageIO.read(Objects.requireNonNull(getClass().getResourceAsStream("")));
             image = ImageIO.read(Objects.requireNonNull(getClass().getResourceAsStream("blueheart.png")));
         }catch (Exception e){
             e.printStackTrace();

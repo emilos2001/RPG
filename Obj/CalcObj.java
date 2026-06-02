@@ -11,7 +11,7 @@ public class CalcObj extends SupObject {
         name = "CALCULATOR";
         try {
             image = ImageIO.read(Objects.requireNonNull(getClass().getResourceAsStream("calculator.png")));
-            calculator = ImageIO.read(Objects.requireNonNull(getClass().getResourceAsStream("calculator.png")));
+            calculator = ImageIO.read(Objects.requireNonNull(getClass().getResourceAsStream("")));
         } catch (Exception e) {
             e.printStackTrace();
         }

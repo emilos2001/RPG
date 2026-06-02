@@ -11,7 +11,7 @@ public class KeyObj extends SupObject {
         name = "KEY";
         try {
             image = ImageIO.read(Objects.requireNonNull(getClass().getResourceAsStream("key.png")));
-            key = ImageIO.read(Objects.requireNonNull(getClass().getResourceAsStream("key.png")));
+            key = ImageIO.read(Objects.requireNonNull(getClass().getResourceAsStream("")));
         } catch (Exception e) {
             e.printStackTrace();
         }

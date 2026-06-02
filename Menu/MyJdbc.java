@@ -1,283 +1,121 @@
 package Totorial.RPG.Menu;
 
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 public class MyJdbc {
     public Connection connection;
     public Statement statement;
-    PreparedStatement preparedStatement;
-    String query;
-    ResultSet resultSet;
-    int pinId;
-
-    public String warningMessage = " ";
 
     public MyJdbc() {
         try {
-            connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/rpg_users", "root", "root");
+            connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/rpg_player?tinyInt1isBit=true", "root", "root");
             statement = connection.createStatement();
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    public void singUp(String userName, String userEmail, String password) {
-        try {
-            query = "INSERT INTO users (userName, userEmail, userPassword) VALUES (?, ?, ?)";
-            preparedStatement = connection.prepareStatement(query);
-            preparedStatement.setString(1, userName);
-            preparedStatement.setString(2, userEmail);
-            preparedStatement.setString(3, password);
-            preparedStatement.executeUpdate();
-            System.out.println("Insert complete");
-        } catch (Exception e) {
+    public boolean joinIn(String userName, String pinGame) {
+        String query = "INSERT INTO users (username, gamePin) VALUES (?, ?)";
+        try (PreparedStatement ps = connection.prepareStatement(query)) {
+            ps.setString(1, userName);
+            ps.setString(2, pinGame);
+            int rowsAffected = ps.executeUpdate();
+            return rowsAffected > 0;
+        } catch (SQLException e) {
             e.printStackTrace();
+            return false;
         }
     }
 
-    public void joinIn(String userName, String pinGame) {
-        try {
-            query = "INSERT INTO game (userName, pinGame) VALUES(?,?)";
-            preparedStatement = connection.prepareStatement(query);
-            preparedStatement.setString(1, userName);
-            preparedStatement.setString(2, pinGame);
-            preparedStatement.executeUpdate();
-            System.out.println("insert complete");
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-
-    public void isEmptyTable() {
-        try {
-            String question = " ";
-            String answer = " ";
-            query = "SELECT COUNT(*) FROM answers";
-            preparedStatement = connection.prepareStatement(query);
-            resultSet = preparedStatement.executeQuery();
-            if (resultSet.next()) {
-                int rowCount = resultSet.getInt(1);
-                if (rowCount > 0) {
-                   warningMessage = "in table exist any records";
-                } else {
-                    query = "INSERT INTO question (question) VALUES (?)";
-                    preparedStatement = connection.prepareStatement(query);
-                    preparedStatement.setString(1, question);
-                    preparedStatement.executeUpdate();
-                    query = "INSERT INTO answers (question, answer) VALUES (?, ?)";
-                    preparedStatement = connection.prepareStatement(query);
-                    preparedStatement.setString(1, question);
-                    preparedStatement.setString(2, answer);
-                    preparedStatement.executeUpdate();
-                    System.out.println("spaces was inserted");
+    public void insertQuestionAnswer(Map<String, List<String>> map, List<Boolean> isCorrect, String currentPin) {
+        String query = "INSERT INTO answers(question, answer, isCorrect, gamePin) values (?, ?, ?, ?)";
+        int statusPointer = 0;
+        try (PreparedStatement ps = connection.prepareStatement(query)) {
+            for (Map.Entry<String, List<String>> entry : map.entrySet()) {
+                String questionText = entry.getKey();
+                List<String> answerList = entry.getValue();
+                for (String singleAnswer : answerList) {
+                    ps.setString(1, questionText);
+                    ps.setString(2, singleAnswer);
+                    if (statusPointer < isCorrect.size()) {
+                        ps.setBoolean(3, isCorrect.get(statusPointer));
+                    } else {
+                        ps.setBoolean(3, false);
+                    }
+                    ps.setString(4, currentPin);
+                    ps.addBatch();
+                    statusPointer++;
                 }
             }
-        } catch (Exception e) {
+            ps.executeBatch();
+        } catch (SQLException e) {
+            System.err.println("Error inserting quiz data: " + e.getMessage());
             e.printStackTrace();
         }
     }
 
-    public void insertQuestion(String questionField) {
-        try {
-            query = "INSERT INTO question (question) VALUES (?)";
-            preparedStatement = connection.prepareStatement(query);
-            preparedStatement.setString(1, questionField);
-            preparedStatement.executeUpdate();
-            System.out.println("question was inserted");
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    public void insertAnswer(String question, String answers, String result, String gamePin) {
-        try {
-            query = "INSERT INTO answers (question, answer, result, gamePin) values (?, ?, ?, ?)";
-            preparedStatement = connection.prepareStatement(query);
-            preparedStatement.setString(1, question);
-            preparedStatement.setString(2, answers);
-            preparedStatement.setString(3, result);
-            preparedStatement.setString(4, gamePin);
-            preparedStatement.executeUpdate();
-            System.out.println("answers was inserted");
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    public void createGame(String pinGame) {
-        try {
-            int pinId = increaseId() + 1;
-            query = "INSERT INTO pincode (pinId, gamePin) VALUES(?, ?)";
-            PreparedStatement preparedStatement = connection.prepareStatement(query);
-            preparedStatement.setInt(1, pinId);
-            preparedStatement.setString(2, pinGame);
-            preparedStatement.executeUpdate();
-            System.out.println("pincode was inserted");
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    private int increaseId() {
-        try {
-            query = "SELECT MAX(pinId) FROM pincode";
-            preparedStatement = connection.prepareStatement(query);
-            resultSet = preparedStatement.executeQuery();
-            if (resultSet.next()) {
-                pinId = resultSet.getInt(1);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return pinId;
-    }
-
-    public List<String> extractAnswers() {
-        List<String> answers = new ArrayList<>();
-        try {
-            query = "SELECT answer FROM answers ORDER BY question ASC";
-            preparedStatement = connection.prepareStatement(query);
-            resultSet = preparedStatement.executeQuery();
-            if (resultSet.next()) {
-                while (resultSet.next()) {
-                    String answer = resultSet.getString("answer");
-                    answers.add(answer);
+    public Map<String, List<AnswerData>> getQuestionsAndAnswer(String gamePin) {
+        Map<String, List<AnswerData>> map = new LinkedHashMap<>();
+        String query = "SELECT question, answer, isCorrect FROM answers WHERE gamePin = ?";
+        try (PreparedStatement ps = connection.prepareStatement(query)) {
+            ps.setString(1, gamePin);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String question = rs.getString("question");
+                    String answer = rs.getString("answer");
+                    boolean isCorrect = rs.getBoolean("isCorrect");
+                    map.computeIfAbsent(question, k -> new ArrayList<>()).add(new AnswerData(answer, isCorrect));
                 }
-            } else {
-                System.out.println("There are no answers in the database");
+            } catch (SQLException e) {
+                e.printStackTrace();
             }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return answers;
-    }
-
-    public List<String> extractQuestions() {
-        List<String> questions = new ArrayList<>();
-        try {
-            query = "SELECT * FROM question";
-            preparedStatement = connection.prepareStatement(query);
-            resultSet = preparedStatement.executeQuery();
-            if (resultSet.next()) {
-                while (resultSet.next()) {
-                    String question = resultSet.getString("question");
-                    questions.add(question);
-                }
-            } else {
-                System.out.println("There are no questions in the database.");
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return questions;
-    }
-
-    // public void deleteLastRecords(String question) {
-    //     try {
-    //         query = "DELETE FROM answers WHERE question = ?";
-    //         preparedStatement = connection.prepareStatement(query);
-    //         preparedStatement.setString(1, question);
-    //         preparedStatement.executeUpdate();
-    //         String query1 = "DELETE FROM question WHERE question = ?";
-    //         preparedStatement = connection.prepareStatement(query1);
-    //         preparedStatement.setString(1, question);
-    //         preparedStatement.executeUpdate();
-    //         String query2 = "DELETE FROM pincode ORDER BY pinId DESC LIMIT 1";
-    //         preparedStatement = connection.prepareStatement(query2);
-    //         preparedStatement.executeUpdate();
-    //     } catch (Exception e) {
-    //         e.printStackTrace();
-    //     }
-    // }
-
-    // public boolean typeOfAnswers() {
-    //     return false;
-    // }
-
-    public boolean isEmpty() {
-        boolean isEmpty = false;
-        try {
-            query = "SELECT COUNT(*) FROM answers";
-            preparedStatement = connection.prepareStatement(query);
-            resultSet = preparedStatement.executeQuery();
-            if (resultSet.next()) {
-                int rowCount = resultSet.getInt(1);
-                if (rowCount == 0) {
-                    isEmpty = true;
-                } else {
-                    System.out.println("No rows in the result set.");
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            try {
-                if (resultSet != null) {
-                    resultSet.close();
-                }
-                if (preparedStatement != null) {
-                    preparedStatement.close();
-                }
-            } catch (SQLException ex) {
-                ex.printStackTrace();
-            }
-        }
-        return isEmpty;
-    }
-
-    public boolean pinCode(String gamePin) {
-        boolean verified = false;
-        try {
-            query = "SELECT * FROM pincode WHERE gamePin = ?";
-            preparedStatement = connection.prepareStatement(query);
-            preparedStatement.setString(1, gamePin);
-            resultSet = preparedStatement.executeQuery();
-            if (resultSet.next()) {
-                verified = true;
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return verified;
-    }
-
-    public boolean signIn(String userName, String password) {
-        boolean verified = false;
-        try {
-            query = "SELECT * FROM users WHERE userName = ? AND userPassword = ?";
-            preparedStatement = connection.prepareStatement(query);
-            preparedStatement.setString(1, userName);
-            preparedStatement.setString(2, password);
-            resultSet = preparedStatement.executeQuery();
-            if (resultSet.next()) {
-                verified = true;
-            }
-            resultSet.close();
-            statement.close();
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        return verified;
+        return map;
     }
 
-   /* public boolean joinInGame(String gamePin) {
-        boolean verified = false;
-        try {
-            query = "SELECT question FROM question WHERE gamePin = ?";
-            preparedStatement = connection.prepareStatement(query);
-            preparedStatement.setString(1, gamePin);
-            resultSet = preparedStatement.executeQuery();
-            if (resultSet.next()) {
-                verified = true;
-            }
-            resultSet.close();
-            statement.close();
+    public void insertGamePin(String gamePin) {
+        String query = "INSERT INTO pincode (gamePin) VALUES (?)";
+        try (PreparedStatement ps = connection.prepareStatement(query)) {
+            ps.setString(1, gamePin);
+            ps.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        return verified;
-    }*/
+    }
+
+    public boolean doesPinExist(String gamePin) {
+        String query = "SELECT EXISTS(SELECT 1 FROM pincode WHERE gamePin = ?)";
+        try (PreparedStatement ps = connection.prepareStatement(query)) {
+            ps.setString(1, gamePin);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    public String getPinCode(String gamePin) {
+        String pin = "";
+        String query = "SELECT gamePin FROM pincode WHERE gamePin = ?";
+        try(PreparedStatement ps = connection.prepareStatement(query)){
+            ps.setString(1, gamePin);
+            try (ResultSet rs = ps.executeQuery()){
+                if(rs.next()){
+                    pin = rs.getString("pincode");
+                }
+            }
+        } catch (SQLException e){
+            e.printStackTrace();
+        }
+        return pin;
+    }
+
+    public record AnswerData(String text, boolean isCorrect) {
+    }
 }
