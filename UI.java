@@ -20,6 +20,7 @@ public class UI {
     public List<Integer> amount;
     List<BufferedImage> buyItems;
     List<Integer> listOfObjectStr = new ArrayList<>();
+    List<BufferedImage> itemsToSell;
     int spriteNum = 1;
     int spriteCounter = 0;
     GamePanel gp;
@@ -47,14 +48,15 @@ public class UI {
         buyItems = new ArrayList<>();
         items = new ArrayList<>(gp.player.inventory.keySet());
         amount = new ArrayList<>(gp.player.inventory.values());
+        itemsToSell = new ArrayList<>(gp.player.inventory.keySet());
         coin = new Coin(gp);
         mana = new Mana(gp);
         keyObj = new KeyObj(gp);
         diamondObj = new Diamond(gp);
         lantern = new Lantern(gp);
         calculator = new CalcObj(gp);
-        buyItems.add(coin.image);
         buyItems.add(keyObj.image);
+        buyItems.add(coin.image);
         buyItems.add(mana.image);
         buyItems.add(diamondObj.image);
         buyItems.add(lantern.image);
@@ -79,82 +81,66 @@ public class UI {
         int selectedItem = selectedSlot(cursorX, cursorY);
         if (itemBuy) {
             switch (selectedItem) {
-                case 12 -> purchaseSellItems(0, 23, coin.name, true);
-                case 13 -> purchaseSellItems(1, 15, coin.name, true);
-                case 14 -> purchaseSellItems(2, 7, coin.name, true);
-                case 15 -> purchaseSellItems(3, 12, coin.name, true);
-                case 16 -> purchaseSellItems(4, 6, mana.name, true);
-                case 17 -> purchaseSellItems(5, 10, mana.name, true);
+                case 12 -> purchaseSellItems(0, 23, true);
+                case 13 -> purchaseSellItems(1, 15, true);
+                case 14 -> purchaseSellItems(2, 7, true);
+                case 15 -> purchaseSellItems(3, 12, true);
+                case 16 -> purchaseSellItems(4, 6, true);
+                case 17 -> purchaseSellItems(5, 10, true);
+            }
+        } else {
+            
+        }
+    }
+
+
+    private void purchaseSellItems(int item, int price, boolean itemBuy) {
+        int coins = gp.player.inventory.getOrDefault(gp.player.coin.image, gp.player.coins);
+        int manaCoins = gp.player.inventory.getOrDefault(gp.player.mana.image, gp.player.manaCoins);
+        if (itemBuy) {
+            if (keys.sellBuy) {
+                switch (item) {
+                    case 0 ->
+                            transactionsBuySell(gp.player.coin.image, gp.player.keyObj.image, keyObj.name, price, coins, true);
+                    case 1 ->
+                            transactionsBuySell(gp.player.mana.image, gp.player.coin.image, coin.name, price, manaCoins, true);
+                    case 2 ->
+                            transactionsBuySell(gp.player.coin.image, gp.player.mana.image, mana.name, price, coins, true);
+                    case 3 ->
+                            transactionsBuySell(gp.player.coin.image, gp.player.diamond.image, diamondObj.name, price, coins, true);
+                    case 4 ->
+                            transactionsBuySell(gp.player.mana.image, gp.player.lantern.image, lantern.name, price, manaCoins, true);
+                    case 5 ->
+                            transactionsBuySell(gp.player.mana.image, gp.player.calcObj.image, calculator.name, price, manaCoins, true);
+                }
+                keys.sellBuy = false;
             }
         }
     }
 
-    private void purchaseSellItems(int item, int price, String currency, boolean itemBuy) {
-        if (keys.sellBuy) {
-            this.items = new ArrayList<>(gp.player.inventory.keySet());
-            this.amount = new ArrayList<>(gp.player.inventory.values());
-            List<BufferedImage> itemsToSell = new ArrayList<>();
-            if (itemBuy) {
-                if (item == 0) {
-                    gp.player.coins++;
-                    BufferedImage image = buyItems.getFirst();
-                    transactions(currency, price);
-                    gp.player.useInventory(image, 1, false);
-                }
-                if (item == 1) {
-                    gp.player.key++;
-                    BufferedImage image = buyItems.get(1);
-                    transactions(currency, price);
-                    gp.player.useInventory(image, 1, false);
-                }
-                if (item == 2) {
-                    gp.player.manaCoins++;
-                    BufferedImage image = buyItems.get(2);
-                    transactions(currency, price);
-                    gp.player.useInventory(image, 1, false);
-                }
-                if (item == 3){
-                    gp.player.diamonds++;
-                    BufferedImage image = buyItems.get(3);
-                    transactions(currency, price);
-                    gp.player.useInventory(image, 1, false);
-                }
-                if (item == 4) {
-                    if (gp.player.calculator == 0) {
-                        gp.player.calculator++;
-                        BufferedImage image = buyItems.get(4);
-                        transactions(currency, price);
-                        gp.player.useInventory(image, 1, false);
-                    } else {
-                        message("you already have a calculator");
-                    }
-                }
-                if (item == 5) {
-                    if (gp.player.lanternNum == 1){
-                        gp.player.lanternNum++;
-                        BufferedImage image = buyItems.get(5);
-                        transactions(currency, price);
-                        gp.player.useInventory(image, 1, false);
-                    } else {
-                        message("you already have a lantern");
-                    }
-                }
+    private void transactionsBuySell(BufferedImage imageMoney, BufferedImage imageItem, String name, int price, int currency, boolean buy) {
+        int itemCount;
+        int index;
+        if (buy) {
+            if (currency < price) {
+                System.out.println("you don't have enough money");
             }
-            keys.sellBuy = false;
+            int remainingMoney = currency - price;
+            itemCount = gp.player.inventory.getOrDefault(imageItem, 0);
+            gp.player.inventory.put(imageItem, itemCount + 1);
+            if (remainingMoney > 0) {
+                gp.player.inventory.put(imageMoney, remainingMoney);
+                if (!itemsToSell.contains(imageItem)) {
+                    itemsToSell.add(imageItem);
+                }
+            } else {
+                gp.player.inventory.remove(imageMoney);
+            }
+            index = itemsToSell.indexOf(imageItem);
+        } else {
+
         }
     }
-
-    private void transactions(String currency, int price) {
-        if (currency.equals(coin.name)) {
-            gp.player.coins -= price;
-            this.amount = new ArrayList<>(gp.player.inventory.values());
-        } else if (currency.equals(mana.name)) {
-            gp.player.manaCoins -= price;
-            System.out.println(gp.player.manaCoins);
-            this.amount = new ArrayList<>(gp.player.inventory.values());
-        }
-    }
-
 
     private void dialoguesInventoryScreen(int x, int y, int width, int height) {
         g2d.setColor(new Color(26, 26, 0));
