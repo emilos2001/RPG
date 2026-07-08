@@ -1,15 +1,16 @@
 package Totorial.RPG;
 
+import Totorial.RPG.Menu.MyJdbc;
 import Totorial.RPG.Obj.*;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.util.*;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 public class UI {
-    public static double currentProgress = 0.0;
-    int[] selectedAnswerIndex = new int[5];
+    public static float currentProgress = 0.0f;
     int currentSelection;
     public int slotCol = 0;
     public int slotRow = 0;
@@ -21,6 +22,7 @@ public class UI {
     List<BufferedImage> buyItems;
     List<Integer> listOfObjectStr = new ArrayList<>();
     List<BufferedImage> itemsToSell;
+    MyJdbc myJdbc;
     int spriteNum = 1;
     int spriteCounter = 0;
     GamePanel gp;
@@ -40,6 +42,7 @@ public class UI {
     int row;
     int spaceBetween = 3;
     public String randomName = "";
+    Color cursorColor = new Color(26, 26, 0);
 
     public UI(GamePanel gp, Keys keys) {
         this.gp = gp;
@@ -49,6 +52,7 @@ public class UI {
         items = new ArrayList<>(gp.player.inventory.keySet());
         amount = new ArrayList<>(gp.player.inventory.values());
         itemsToSell = new ArrayList<>(gp.player.inventory.keySet());
+        myJdbc = new MyJdbc();
         coin = new Coin(gp);
         mana = new Mana(gp);
         keyObj = new KeyObj(gp);
@@ -74,8 +78,8 @@ public class UI {
         return col + (row * spaceBetween);
     }
 
-    private void cursor(int cursorX, int cursorY, int width, int height, boolean itemBuy) {
-        g2d.setColor(new Color(26, 26, 0));
+    private void cursor(int cursorX, int cursorY, int width, int height, boolean itemBuy, Color color) {
+        g2d.setColor(color);
         g2d.setStroke(new BasicStroke(3));
         g2d.drawRoundRect(cursorX + slotCol, cursorY + slotRow, width, height, 15, 15);
         int selectedItem = selectedSlot(cursorX, cursorY);
@@ -88,8 +92,6 @@ public class UI {
                 case 16 -> purchaseSellItems(4, 6, true);
                 case 17 -> purchaseSellItems(5, 10, true);
             }
-        } else {
-            
         }
     }
 
@@ -137,8 +139,7 @@ public class UI {
                 gp.player.inventory.remove(imageMoney);
             }
             index = itemsToSell.indexOf(imageItem);
-        } else {
-
+            System.out.println("name " + name + " index " + index);
         }
     }
 
@@ -151,7 +152,7 @@ public class UI {
 
     private void inventory() {
         dialoguesInventoryScreen(144, 288, 432, 144);
-        cursor(160, 310, 60, 60, false);
+        cursor(160, 310, 60, 60, false, new Color(26, 26, 0));
         playerInInventory();
         items(25, 38, 0, 0, items, amount, true);
     }
@@ -212,9 +213,9 @@ public class UI {
                 sb = new StringBuilder(word + " ");
             }
         }
+        g2d.setColor(Color.WHITE);
         g2d.drawString(sb.toString(), x, y);
     }
-
 
     private void dialogueScreenWithVillager() {
         gp.villager.setDialogue(gp.villager.questions, gp.villager.answers, gp.villager.isCorrect, gp.menu.pinGame());
@@ -222,10 +223,11 @@ public class UI {
         g2d.setColor(Color.white);
         g2d.setFont(new Font("Arial", Font.BOLD, 17));
         g2d.drawImage(coin.image, 685, 250, 30, 30, null);
-        g2d.drawString("x:" + gp.player.getCoins(), 710, 270);
+        this.amount = new ArrayList<>(gp.player.inventory.values());
+        int amountOfCoins = this.amount.getFirst();
+        g2d.drawString("x:" + amountOfCoins, 710, 270);
         charactersInWindows(325, 860, 50, 50, gp.player.dinoLeftUpRight, gp.player.dinoRightUpRight);
         charactersInWindows(395, 860, 50, 50, gp.villager.npcLeft1, gp.villager.npcLeft2);
-        cursor(19, 310, 40, 40, false);
         questionAndAnswers();
     }
 
@@ -245,18 +247,79 @@ public class UI {
                 gp.state = gp.playState;
             }
         }
+        String letters = "ABCDE";
         for (int i = 0; i < 5; i++) {
-            int x = 70;
-            int y = 340 + (i * 90);
+            int x = 45;
+            int y = 350 + (i * 80);
             if (gp.villager.answers[gp.villager.dialogueSet][gp.villager.dialogueIndex][i] != null) {
                 String answer = gp.villager.answers[gp.villager.dialogueSet][gp.villager.dialogueIndex][i];
-                nextLineText(answer, x, y);
+                //asta trebuie stearsa
+                boolean isCorrect = gp.villager.isCorrect[gp.villager.dialogueSet][gp.villager.dialogueIndex][i];
+                nextLineText(String.valueOf(letters.charAt(i)), x, y);
+                //asta trebuie stearsa
+                nextLineText(String.valueOf(isCorrect), x + 450, y);
+                nextLineText(answer, x + 35, y);
+
             }
         }
         if (gp.villager.answers[gp.villager.dialogueSet][0] == null) {
             gp.villager.dialogueSet = 0;
         }
+        correctOrWrong();
         nextDialogue();
+    }
+
+    int timer = 0;
+    boolean checking = false;
+    float prog = 0;
+
+    private float nrOfQuestion(String gamePin) {
+        float numOfQuestions = myJdbc.numOfQuestions(gamePin);
+        return 100f / numOfQuestions;
+    }
+
+    private void correctOrWrong() {
+        int cursorY = 325 + slotRow;
+        int correctIndex = -1;
+        int place = 0;
+        for (int i = 0; i < 5; i++) {
+            if (gp.villager.isCorrect[gp.villager.dialogueSet][gp.villager.dialogueIndex][i]) {
+                correctIndex = i;
+                break;
+            }
+        }
+        switch (correctIndex) {
+            case 0 -> place = 325;
+            case 1 -> place = 365;
+            case 2 -> place = 405;
+            case 3 -> place = 445;
+            case 4 -> place = 485;
+        }
+        if(gp.state == gp.dialogueStateWithVillagers){
+            if (keys.verify && !checking) {
+                checking = true;
+                timer = 400;
+                if (cursorY == place) {
+                    cursorColor = new Color(0, 255, 0);
+                    gp.player.useInventory(gp.player.coin.image, 5, false);
+                    currentProgress += nrOfQuestion("PNQH1");
+                    System.out.println(currentProgress);
+                } else {
+                    cursorColor = new Color(255, 0, 0);
+                    gp.player.useInventory(gp.player.coin.image, 7, true);
+                    System.out.println("wrong");
+                }
+                keys.verify = false;
+            }
+            if (checking) {
+                timer--;
+                if (timer <= 0) {
+                    checking = false;
+                    cursorColor = new Color(26, 26, 0);
+                }
+            }
+            cursor(43, cursorY, 35, 35, false, cursorColor);
+        }
     }
 
     private void nextDialogue() {
@@ -265,18 +328,8 @@ public class UI {
         }
         int currentSet = gp.villager.dialogueSet;
         int currentIndex = gp.villager.dialogueIndex;
-        selectedAnswerIndex[currentSet] = currentSelection;
-        if (selectedAnswerIndex[currentSet] == -1) {
-            return;
-        }
-        int playerChoice = selectedAnswerIndex[currentSet];
-        boolean isCorrect = gp.villager.isCorrect[currentSet][currentIndex][playerChoice];
-        if (isCorrect) {
-            gp.player.addCoins(5);
-            currentProgress = Math.max(0.0, currentIndex + 0.15);
-        }
-        System.out.println((int) (currentProgress * 100) + "%");
         int nextSet = currentSet + 1;
+        cursorColor = new Color(26, 26, 0);
         if (nextSet >= gp.villager.questions.length || gp.villager.questions[nextSet][currentIndex] == null) {
             gp.villager.dialogueSet = 0;
             gp.villager.dialogueIndex++;
@@ -288,52 +341,54 @@ public class UI {
         keys.nextDialogue = false;
     }
 
+
     private void dialogueScreenWithMerchant() {
-        dialoguesInventoryScreen(48, 500, gp.size * 7, gp.size * 3);
-        dialoguesInventoryScreen(390, 500, gp.size * 7, gp.size * 3);
+        dialoguesInventoryScreen(48, 350, gp.size * 7, gp.size * 3);
+        dialoguesInventoryScreen(390, 350, gp.size * 7, gp.size * 3);
         buySell();
-        dialoguesInventoryScreen(48, 720, 686, 150);
+        dialoguesInventoryScreen(48, 570, 686, 150);
         g2d.setFont(new Font(null, Font.ITALIC, 20));
         g2d.setColor(Color.white);
-        int i = 670;
+        int i = 550;
         for (String line : currentDialogue.split("\n")) {
             g2d.drawString(line, 70, i + 120);
             i += 30;
         }
         g2d.setFont(new Font(null, Font.ITALIC, 20));
-        g2d.drawString("SELL", 620, 810);
-        g2d.drawString("BUY", 620, 845);
+        g2d.drawString("SELL", 620, 630);
+        g2d.drawString("BUY", 620, 675);
         currentDialogue = """
                 If you come to me,you need to sell or buy something\s
                  what do you to want,
                  to buy or sell?""";
         if (choose == 1) {
-            cursor(405, 525, 70, 70, false);
+            cursor(405, 375, 70, 70, false, cursorColor);
             g2d.setColor(Color.white);
-            g2d.drawString(">", 600, 810);
+            g2d.drawString(">", 600, 630);
         } else if (choose == 2) {
-            cursor(60, 525, 60, 60, true);
+            cursor(60, 375, 60, 60, true, cursorColor);
             g2d.setColor(Color.white);
-            g2d.drawString(">", 600, 845);
+            g2d.drawString(">", 600, 675);
         }
-        charactersInWindows(320, 870, 45, 45, gp.player.dinoLeftUpRight, gp.player.dinoRightUpRight);
-        charactersInWindows(380, 870, 45, 45, gp.merchant.merchant1, gp.merchant.merchant2);
+        charactersInWindows(320, 740, 45, 45, gp.player.dinoLeftUpRight, gp.player.dinoRightUpRight);
+        charactersInWindows(380, 740, 45, 45, gp.merchant.merchant1, gp.merchant.merchant2);
     }
 
     public void buySell() {
-        items(0, 0, -100, 220, buyItems, null, false);
-        items(278, 265, 250, 220, items, amount, true);
+        items(0, 0, -100, 70, buyItems, null, false);
+        items(278, 110, 250, 70, items, amount, true);
         g2d.setFont(new Font(null, Font.ITALIC, 15));
-        g2d.drawString("Your inventory", 615, 520);
-        g2d.drawString("Merchant stuff", 75, 520);
+        g2d.drawString("Your inventory", 620, 370);
+        g2d.drawString("Merchant stuff", 65, 370);
     }
 
     public void draw(Graphics2D g2d) {
         counter++;
         this.g2d = g2d;
+        float progressInProgressBar = currentProgress + prog;
         if (gp.state == gp.dialogueStateWithVillagers) {
             dialogueScreenWithVillager();
-            progressBar(g2d, currentProgress);
+            progressBar(g2d, progressInProgressBar);
         }
         if (gp.state == gp.dialogueStateWithMerchant) {
             dialogueScreenWithMerchant();
@@ -343,7 +398,7 @@ public class UI {
         }
         if (gp.state == gp.information) {
             information();
-            progressBar(g2d, currentProgress);
+            progressBar(g2d, progressInProgressBar);
         }
         if (gp.state == gp.chestState) {
             chestScreen();
@@ -413,26 +468,24 @@ public class UI {
         g2d.drawImage(randomImage, 250, 385, 50, 50, null);
     }
 
-    private void progressBar(Graphics2D g2d, double progress) {
-        int x = 10;
+    private void progressBar(Graphics2D g2d, float progress) {
+        int x = 15;
         int y = 10;
         int height = 50;
-        int maxBarWidth = gp.screenWidth - 50;
-        int width = (int) (maxBarWidth * progress);
         g2d.setColor(new Color(0, 26, 0, 190));
-        g2d.fillRoundRect(x, y, maxBarWidth, height, 25, 25);
-        g2d.setColor(new Color(0, 0, 0, 170));
-        g2d.fillRoundRect(x + 5, y + 5, maxBarWidth - 10, height - 10, 30, 30);
-        if (width > 10) {
+        g2d.fillRoundRect(x, y, gp.screenWidth - 50, height, 25, 25);
+        if (progress > 0){
             g2d.setColor(new Color(0, 255, 0));
-            g2d.fillRoundRect(x + 5, y + 5, width - 10, height - 10, 30, 30);
+            g2d.fillRoundRect(x +5, y + 5, (int) (progress * 7.2), height - 10, 30, 30);
         }
         g2d.setFont(new Font("MV Boli", Font.BOLD, 25));
-        g2d.setColor(Color.white);
-        String progressText = String.format("%.1f%%", progress * 100);
-        g2d.drawString(progressText, (gp.screenWidth - 60) / 2, 45);
+        g2d.setColor(new Color(0, 0, 0));
+        String text = String.valueOf(progress);
+        int textWidth = g2d.getFontMetrics().stringWidth(text);
+        int textX = x + ((gp.screenWidth - 50) / 2) - (textWidth / 2);
+        g2d.setColor(new Color(255, 255, 255));
+        g2d.drawString(text + " %", textX, y + 35);
     }
-
     private void information() {
         g2d.setColor(new Color(102, 255, 102, 170));
         g2d.fillRoundRect(375, 750, 360, 50, 25, 25);
